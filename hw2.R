@@ -44,7 +44,7 @@ create_map = function(df){
            title = 'Bear Attack Locations')
 }
 
-#define function that will be called to create bar graph
+#define function that will be called to create graph
 create_graph = function(df){
   ggplot(df, aes(x = Year, y = Gender, color = Gender, size = Age)) +
     geom_jitter() +
