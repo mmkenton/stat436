@@ -1,0 +1,92 @@
+---
+title: "HW4"
+output: html_document
+date: "2024-12-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(dplyr)
+library(tidymodels)
+library(readr)
+library(ggrepel)
+library(tidytext)
+library(dslabs)
+library(ggplot2)
+library(knitr)
+library(tidyr)
+library(embed)
+```
+
+```{r, warning = FALSE}
+mushroom = read.csv("https://raw.githubusercontent.com/mmkenton/stat436/refs/heads/main/mushroom_cleaned.csv") 
+
+mushroom$class[mushroom$class == '0'] <- 'Edible'
+mushroom$class[mushroom$class == '1'] <- 'Poisonous'
+
+```
+
+```{r, warning = FALSE}
+pca_rec <- recipe(~., data = mushroom) %>%
+  update_role(obs_number, class, new_role = "id") %>%
+  step_normalize(all_predictors()) %>%
+  step_pca(all_predictors())
+
+pca_prep <- prep(pca_rec)
+```
+
+```{r}
+components = tidy(pca_prep, 2)
+scores = juice(pca_prep)
+variances = tidy(pca_prep, 2, type = "variance")
+```
+
+
+```{r, warning = FALSE}
+ggplot(components, aes(value, terms)) +
+  geom_col(color = 'forestgreen', 
+           fill = 'forestgreen') +
+  facet_wrap(~component, nrow = 1) +
+  labs(x = 'Value',
+       y = 'Mushroom Trait',
+       title = 'Variation Between Principal Components') +
+  theme(axis.text = element_text(size = 7))
+```
+
+```{r, warning = FALSE}
+mushrooms_merged = merge(x = mushroom, y = scores, by = "obs_number", all = TRUE)
+
+ggplot(mushrooms_merged, aes(PC1, PC2)) +
+  geom_point(aes(color = class.y), 
+             alpha = 0.7, 
+             size = 0.5) +
+  coord_fixed(sqrt(variances$value[2] / variances$value[1])) +
+  facet_wrap(~ stem.color ) +
+  labs(color = 'Classification',
+       title = 'Comparison Between Principal Components',
+       subtitle = 'Faceted by Stem Color') +
+  scale_color_manual(values = c('Edible' = 'green', 
+                                'Poisonous' = 'darkgreen'))
+```
+
+```{r, warning = FALSE}
+umap_rec <- recipe(~., data = mushroom) %>%
+  update_role(obs_number, class, new_role = "id") %>%
+  step_normalize(all_predictors()) %>%
+  step_umap(all_predictors(), neighbors = 20, min_dist = 0.1)
+umap_prep <- prep(umap_rec)
+```
+
+```{r, warning = FALSE}
+ggplot(juice(umap_prep), aes(UMAP1, UMAP2)) +
+  geom_point(aes(color = class), alpha = 0.7, size = 0.8)  +
+  labs(color = "Classification",
+       title = "Mushroom Types") +
+  scale_color_manual(values = c('Edible' = 'green', 
+                                'Poisonous' = 'darkgreen'))
+```
+
